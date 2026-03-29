@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+
+	flag "github.com/spf13/pflag"
 )
 
 // ---------------------------------------------------------------------------
@@ -140,8 +141,8 @@ type ExtraReason struct {
 }
 
 type OS struct {
-	PortsUsed    []PortUsed    `xml:"portused"`
-	OSMatches    []OSMatch     `xml:"osmatch"`
+	PortsUsed     []PortUsed      `xml:"portused"`
+	OSMatches     []OSMatch       `xml:"osmatch"`
 	OSFingerprint []OSFingerprint `xml:"osfingerprint"`
 }
 
@@ -230,7 +231,7 @@ type HostStat struct {
 }
 
 // ---------------------------------------------------------------------------
-// JSON output structs (clean, omitempty)
+// JSON output structs
 // ---------------------------------------------------------------------------
 
 type JSONOutput struct {
@@ -250,35 +251,35 @@ type JSONOutput struct {
 }
 
 type JSONHost struct {
-	StartTime   int64          `json:"starttime,omitempty"`
-	EndTime     int64          `json:"endtime,omitempty"`
-	Status      *Status        `json:"status,omitempty"`
-	Addresses   []Address      `json:"addresses,omitempty"`
-	Hostnames   []Hostname     `json:"hostnames,omitempty"`
-	Ports       []JSONPort     `json:"ports,omitempty"`
-	ExtraPorts  []ExtraPort    `json:"extraports,omitempty"`
-	OS          *JSONOS        `json:"os,omitempty"`
-	HostScripts []JSONScript   `json:"hostscripts,omitempty"`
-	Traceroute  *Trace         `json:"traceroute,omitempty"`
-	Times       *Times         `json:"times,omitempty"`
-	Distance    *int           `json:"distance,omitempty"`
-	Uptime      *Uptime        `json:"uptime,omitempty"`
-	TCPSequence *TCPSequence   `json:"tcpsequence,omitempty"`
+	StartTime   int64        `json:"starttime,omitempty"`
+	EndTime     int64        `json:"endtime,omitempty"`
+	Status      *Status      `json:"status,omitempty"`
+	Addresses   []Address    `json:"addresses,omitempty"`
+	Hostnames   []Hostname   `json:"hostnames,omitempty"`
+	Ports       []JSONPort   `json:"ports,omitempty"`
+	ExtraPorts  []ExtraPort  `json:"extraports,omitempty"`
+	OS          *JSONOS      `json:"os,omitempty"`
+	HostScripts []JSONScript `json:"hostscripts,omitempty"`
+	Traceroute  *Trace       `json:"traceroute,omitempty"`
+	Times       *Times       `json:"times,omitempty"`
+	Distance    *int         `json:"distance,omitempty"`
+	Uptime      *Uptime      `json:"uptime,omitempty"`
+	TCPSequence *TCPSequence `json:"tcpsequence,omitempty"`
 }
 
 type JSONPort struct {
-	Protocol string      `json:"protocol,omitempty"`
-	PortID   int         `json:"portid"`
-	State    *State      `json:"state,omitempty"`
-	Service  *Service    `json:"service,omitempty"`
+	Protocol string       `json:"protocol,omitempty"`
+	PortID   int          `json:"portid"`
+	State    *State       `json:"state,omitempty"`
+	Service  *Service     `json:"service,omitempty"`
 	Scripts  []JSONScript `json:"scripts,omitempty"`
 }
 
 type JSONScript struct {
-	ID       string             `json:"id,omitempty"`
-	Output   string             `json:"output,omitempty"`
-	Tables   []JSONScriptTable  `json:"tables,omitempty"`
-	Elements map[string]string  `json:"elements,omitempty"`
+	ID       string            `json:"id,omitempty"`
+	Output   string            `json:"output,omitempty"`
+	Tables   []JSONScriptTable `json:"tables,omitempty"`
+	Elements map[string]string `json:"elements,omitempty"`
 }
 
 type JSONScriptTable struct {
@@ -287,9 +288,9 @@ type JSONScriptTable struct {
 }
 
 type JSONOS struct {
-	PortsUsed    []PortUsed    `json:"portused,omitempty"`
-	Matches      []OSMatch     `json:"matches,omitempty"`
-	Fingerprints []string      `json:"fingerprints,omitempty"`
+	PortsUsed    []PortUsed `json:"portused,omitempty"`
+	Matches      []OSMatch  `json:"matches,omitempty"`
+	Fingerprints []string   `json:"fingerprints,omitempty"`
 }
 
 // ---------------------------------------------------------------------------
@@ -297,14 +298,9 @@ type JSONOS struct {
 // ---------------------------------------------------------------------------
 
 func convertScript(s Script) JSONScript {
-	js := JSONScript{
-		ID:     s.ID,
-		Output: s.Output,
-	}
-	if len(s.Tables) > 0 {
-		for _, t := range s.Tables {
-			js.Tables = append(js.Tables, convertScriptTable(t))
-		}
+	js := JSONScript{ID: s.ID, Output: s.Output}
+	for _, t := range s.Tables {
+		js.Tables = append(js.Tables, convertScriptTable(t))
 	}
 	if len(s.Elems) > 0 {
 		js.Elements = make(map[string]string)
@@ -336,51 +332,38 @@ func convertScriptTable(t ScriptTable) JSONScriptTable {
 
 func convertHost(h Host) JSONHost {
 	jh := JSONHost{
-		StartTime:  h.StartTime,
-		EndTime:    h.EndTime,
-		Status:     h.Status,
-		Addresses:  h.Addresses,
-		Hostnames:  h.Hostnames,
-		ExtraPorts: h.ExtraPorts,
-		Times:      h.Times,
-		Traceroute: h.Trace,
-		Uptime:     h.Uptime,
+		StartTime:   h.StartTime,
+		EndTime:     h.EndTime,
+		Status:      h.Status,
+		Addresses:   h.Addresses,
+		Hostnames:   h.Hostnames,
+		ExtraPorts:  h.ExtraPorts,
+		Times:       h.Times,
+		Traceroute:  h.Trace,
+		Uptime:      h.Uptime,
 		TCPSequence: h.TCPSequence,
 	}
-
 	if h.Distance != nil {
 		v := h.Distance.Value
 		jh.Distance = &v
 	}
-
 	for _, p := range h.Ports {
-		jp := JSONPort{
-			Protocol: p.Protocol,
-			PortID:   p.PortID,
-			State:    p.State,
-			Service:  p.Service,
-		}
+		jp := JSONPort{Protocol: p.Protocol, PortID: p.PortID, State: p.State, Service: p.Service}
 		for _, s := range p.Scripts {
 			jp.Scripts = append(jp.Scripts, convertScript(s))
 		}
 		jh.Ports = append(jh.Ports, jp)
 	}
-
 	if h.OS != nil {
-		jos := &JSONOS{
-			PortsUsed: h.OS.PortsUsed,
-			Matches:   h.OS.OSMatches,
-		}
+		jos := &JSONOS{PortsUsed: h.OS.PortsUsed, Matches: h.OS.OSMatches}
 		for _, fp := range h.OS.OSFingerprint {
 			jos.Fingerprints = append(jos.Fingerprints, fp.Fingerprint)
 		}
 		jh.OS = jos
 	}
-
 	for _, s := range h.HostScripts {
 		jh.HostScripts = append(jh.HostScripts, convertScript(s))
 	}
-
 	return jh
 }
 
@@ -419,11 +402,7 @@ type HostSummary struct {
 func hostsOnly(hosts []JSONHost) []HostSummary {
 	var out []HostSummary
 	for _, h := range hosts {
-		s := HostSummary{
-			Addresses: h.Addresses,
-			Hostnames: h.Hostnames,
-			Status:    h.Status,
-		}
+		s := HostSummary{Addresses: h.Addresses, Hostnames: h.Hostnames, Status: h.Status}
 		if h.OS != nil && len(h.OS.Matches) > 0 {
 			s.OS = h.OS.Matches[0].Name
 		}
@@ -439,17 +418,14 @@ func hostsOnly(hosts []JSONHost) []HostSummary {
 func printSummary(out JSONOutput) {
 	var elapsed float64
 	var up int
-	if out.RunStats != nil {
-		if rs, ok := out.RunStats.(*RunStats); ok && rs != nil {
-			if rs.Finished != nil {
-				elapsed = rs.Finished.Elapsed
-			}
-			if rs.Hosts != nil {
-				up = rs.Hosts.Up
-			}
+	if rs, ok := out.RunStats.(*RunStats); ok && rs != nil {
+		if rs.Finished != nil {
+			elapsed = rs.Finished.Elapsed
+		}
+		if rs.Hosts != nil {
+			up = rs.Hosts.Up
 		}
 	}
-
 	fmt.Fprintf(os.Stderr, "\n%s\n", strings.Repeat("=", 60))
 	fmt.Fprintf(os.Stderr, "  Nmap %s  |  %s\n", out.Version, out.StartStr)
 	fmt.Fprintf(os.Stderr, "  Args: %s\n", out.Args)
@@ -478,7 +454,6 @@ func printSummary(out JSONOutput) {
 			label += fmt.Sprintf("  (%s)", strings.Join(names, ", "))
 		}
 		fmt.Fprintf(os.Stderr, "HOST: %s  [%s]\n", label, state)
-
 		for _, p := range h.Ports {
 			pstate := "?"
 			if p.State != nil {
@@ -512,11 +487,12 @@ func filterEmpty(ss []string) []string {
 // ---------------------------------------------------------------------------
 
 func main() {
-	outputFile  := flag.String("o", "", "Write JSON to file (default: stdout)")
-	compact     := flag.Bool("compact", false, "Compact JSON output")
-	filterState := flag.String("filter-state", "", "Only include ports with this state (e.g. open)")
-	hostsOnlyF  := flag.Bool("hosts-only", false, "Return condensed host-level summary")
-	summary     := flag.Bool("summary", false, "Print human-readable summary to stderr")
+	outputFile := flag.StringP("output", "o", "", "Write JSON to file (default: stdout)")
+	compact := flag.Bool("compact", false, "Compact JSON output")
+	filterState := flag.String("filter-state", "", "Only include ports with this state (e.g. open, closed, filtered)")
+	hostsOnlyF := flag.Bool("hosts-only", false, "Return condensed host-level summary")
+	summary := flag.Bool("summary", false, "Print human-readable summary to stderr")
+
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, `nmapparser — convert Nmap XML output to JSON
 
@@ -531,13 +507,16 @@ Flags:
 Examples:
   nmapparser scan.xml
   nmapparser scan.xml -o result.json
-  nmapparser scan.xml --filter-state open
+  nmapparser --filter-state open scan.xml
   nmapparser scan.xml --hosts-only
   nmapparser scan.xml --summary -o result.json
   nmap -sS -oX - 192.168.1.1 | nmapparser -
   nmapparser scan.xml --compact | jq '.hosts[].ports[]'
 `)
 	}
+
+	// pflag supports flags placed ANYWHERE — before or after the input file
+	flag.CommandLine.SetInterspersed(true)
 	flag.Parse()
 
 	if flag.NArg() < 1 {
@@ -594,12 +573,11 @@ Examples:
 	if nmap.RunStats != nil {
 		out.RunStats = nmap.RunStats
 	}
-
 	for _, h := range nmap.Hosts {
 		out.Hosts = append(out.Hosts, convertHost(h))
 	}
 
-	// --- Filter ---
+	// --- Filters ---
 	if *filterState != "" {
 		out.Hosts = filterByState(out.Hosts, *filterState)
 	}
@@ -611,28 +589,19 @@ Examples:
 
 	// --- Serialize ---
 	var jsonBytes []byte
+	var outputData interface{} = out
+	if *hostsOnlyF {
+		outputData = hostsOnly(out.Hosts)
+	}
+
 	if *compact {
-		jsonBytes, err = json.Marshal(out)
+		jsonBytes, err = json.Marshal(outputData)
 	} else {
-		jsonBytes, err = json.MarshalIndent(out, "", "  ")
+		jsonBytes, err = json.MarshalIndent(outputData, "", "  ")
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[ERROR] JSON marshal: %v\n", err)
 		os.Exit(1)
-	}
-
-	// --- Hosts-only overrides full output ---
-	if *hostsOnlyF {
-		summary_data := hostsOnly(out.Hosts)
-		if *compact {
-			jsonBytes, err = json.Marshal(summary_data)
-		} else {
-			jsonBytes, err = json.MarshalIndent(summary_data, "", "  ")
-		}
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "[ERROR] JSON marshal: %v\n", err)
-			os.Exit(1)
-		}
 	}
 
 	// --- Output ---
