@@ -10,25 +10,25 @@ Built for bug bounty hunters and recon pipelines. Installable like any Go tool.
 
 **Via `go install` (recommended):**
 ```bash
-go install github.com/yourusername/nmapparser@latest
+go install github.com/ihsanlearn/nmapparser@latest
 ```
 
 **Download prebuilt binary (Linux):**
 ```bash
 # amd64
-curl -L https://github.com/yourusername/nmapparser/releases/latest/download/nmapparser-linux-amd64 -o nmapparser
+curl -L https://github.com/ihsanlearn/nmapparser/releases/latest/download/nmapparser-linux-amd64 -o nmapparser
 chmod +x nmapparser
 sudo mv nmapparser /usr/local/bin/
 
 # arm64
-curl -L https://github.com/yourusername/nmapparser/releases/latest/download/nmapparser-linux-arm64 -o nmapparser
+curl -L https://github.com/ihsanlearn/nmapparser/releases/latest/download/nmapparser-linux-arm64 -o nmapparser
 chmod +x nmapparser
 sudo mv nmapparser /usr/local/bin/
 ```
 
 **Build from source:**
 ```bash
-git clone https://github.com/yourusername/nmapparser.git
+git clone https://github.com/ihsanlearn/nmapparser.git
 cd nmapparser
 go build -o nmapparser .
 ```
